@@ -55,7 +55,7 @@ interface OrderDraftPageProps extends FetchMoreProps {
   onShippingAddressEdit: () => void;
   onShippingMethodEdit: () => void;
   onProfileView: () => void;
-  onShowMetadata: (id: string) => void;
+  onOrderLineShowMetadata: (id: string) => void;
 }
 
 const draftOrderListUrl = orderDraftListUrl();
@@ -80,7 +80,7 @@ const OrderDraftPage = (props: OrderDraftPageProps) => {
     onShippingAddressEdit,
     onShippingMethodEdit,
     onProfileView,
-    onShowMetadata,
+    onOrderLineShowMetadata,
     order,
     channelUsabilityData,
     users,
@@ -130,6 +130,7 @@ const OrderDraftPage = (props: OrderDraftPageProps) => {
                 description: "button",
               }),
               onSelect: onDraftRemove,
+              color: "critical1" as const,
             },
             ...extensionMenuItems,
           ]}
@@ -147,7 +148,7 @@ const OrderDraftPage = (props: OrderDraftPageProps) => {
           onOrderLineChange={onOrderLineChange}
           onOrderLineRemove={onOrderLineRemove}
           onShippingMethodEdit={onShippingMethodEdit}
-          onShowMetadata={onShowMetadata}
+          onOrderLineShowMetadata={onOrderLineShowMetadata}
         />
         <OrderHistory
           history={order?.events}
