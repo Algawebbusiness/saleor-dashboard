@@ -2,12 +2,13 @@
 import { ConfirmButton, ConfirmButtonTransitionState } from "@dashboard/components/ConfirmButton";
 import { InfiniteScroll } from "@dashboard/components/InfiniteScroll";
 import { DashboardModal } from "@dashboard/components/Modal";
-import ResponsiveTable from "@dashboard/components/ResponsiveTable";
+import { ResponsiveTable } from "@dashboard/components/ResponsiveTable";
 import TableCellAvatar from "@dashboard/components/TableCellAvatar";
 import TableRowLink from "@dashboard/components/TableRowLink";
 import { SaleorThrobber } from "@dashboard/components/Throbber";
+import { ProductWhereInput } from "@dashboard/graphql";
 import useModalDialogOpen from "@dashboard/hooks/useModalDialogOpen";
-import useSearchQuery from "@dashboard/hooks/useSearchQuery";
+import { useModalSearchWithFilters } from "@dashboard/hooks/useModalSearchWithFilters";
 import { maybe } from "@dashboard/misc";
 import { Container, FetchMoreProps } from "@dashboard/types";
 import { TableBody, TableCell, TextField } from "@material-ui/core";
@@ -17,6 +18,8 @@ import { FormattedMessage, useIntl } from "react-intl";
 
 import BackButton from "../BackButton";
 import Checkbox from "../Checkbox";
+import { useModalProductFilterContext } from "../ModalFilters/entityConfigs/ModalProductFilterProvider";
+import { ModalFilters } from "../ModalFilters/ModalFilters";
 import { messages } from "./messages";
 import { useStyles } from "./styles";
 import { Products, SelectedChannel } from "./types";
@@ -29,7 +32,11 @@ interface AssignProductDialogMultiProps extends FetchMoreProps {
   productUnavailableText?: string;
   selectedIds?: Record<string, boolean>;
   loading: boolean;
-  onFetch: (value: string) => void;
+  onFilterChange?: (
+    filterVariables: ProductWhereInput,
+    channel: string | undefined,
+    query: string,
+  ) => void;
   onSubmit: (data: Array<Container & Omit<Partial<Products[number]>, "name">>) => void;
   onClose: () => void;
   labels?: {
@@ -49,7 +56,7 @@ export const AssignProductDialogMulti = (props: AssignProductDialogMultiProps) =
     loading,
     products,
     onClose,
-    onFetch,
+    onFilterChange,
     onFetchMore,
     onSubmit,
     selectedIds,
@@ -58,8 +65,14 @@ export const AssignProductDialogMulti = (props: AssignProductDialogMultiProps) =
   } = props;
   const classes = useStyles(props);
   const intl = useIntl();
-  const [query, onQueryChange, queryReset] = useSearchQuery(onFetch);
   const [productsDict, setProductsDict] = useState(selectedIds || {});
+  const { combinedFilters, clearFilters } = useModalProductFilterContext();
+
+  const { query, onQueryChange, resetQuery } = useModalSearchWithFilters({
+    filterVariables: combinedFilters,
+    open,
+    onFetch: (filters, query) => onFilterChange?.(filters.where, filters.channel, query),
+  });
 
   // Keep selected product data to send them back when submitting
   const productsData = useRef<Products>([]);
@@ -110,13 +123,15 @@ export const AssignProductDialogMulti = (props: AssignProductDialogMultiProps) =
   };
 
   const handleClose = () => {
-    queryReset();
+    resetQuery();
+    clearFilters();
     onClose();
   };
 
   useModalDialogOpen(open, {
     onOpen: () => {
-      queryReset();
+      resetQuery();
+      clearFilters();
       setProductsDict(selectedIds || {});
     },
     onClose: handleClose,
@@ -136,6 +151,8 @@ export const AssignProductDialogMulti = (props: AssignProductDialogMultiProps) =
           endAdornment: loading && <SaleorThrobber size={16} />,
         }}
       />
+
+      <ModalFilters />
 
       <InfiniteScroll
         id={scrollableTargetId}
@@ -171,7 +188,7 @@ export const AssignProductDialogMulti = (props: AssignProductDialogMultiProps) =
                         opacity: !isProductAvailable ? 0.5 : 1,
                       }}
                     />
-                    <TableCell className={classes.colName}>
+                    <TableCell>
                       {product.name}
                       {!isProductAvailable && productUnavailableText && (
                         <Text display="block" size={1} color="default2">

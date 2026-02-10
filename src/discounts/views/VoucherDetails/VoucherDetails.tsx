@@ -31,6 +31,7 @@ import {
   getFilteredProductVariants,
 } from "@dashboard/discounts/utils";
 import {
+  ProductWhereInput,
   useUpdateMetadataMutation,
   useUpdatePrivateMetadataMutation,
   useVoucherCataloguesAddMutation,
@@ -47,10 +48,10 @@ import useLocalPaginator, {
   useSectionLocalPaginationState,
 } from "@dashboard/hooks/useLocalPaginator";
 import useNavigator from "@dashboard/hooks/useNavigator";
-import useNotifier from "@dashboard/hooks/useNotifier";
+import { useNotifier } from "@dashboard/hooks/useNotifier";
 import { PaginatorContext } from "@dashboard/hooks/usePaginator";
 import useShop from "@dashboard/hooks/useShop";
-import { commonMessages, sectionNames } from "@dashboard/intl";
+import { sectionNames } from "@dashboard/intl";
 import { useCategoryWithTotalProductsSearch } from "@dashboard/searches/useCategorySearch";
 import { useCollectionWithTotalProductsSearch } from "@dashboard/searches/useCollectionSearch";
 import useProductSearch from "@dashboard/searches/useProductSearch";
@@ -91,13 +92,23 @@ const VoucherDetails = ({ id, params }: VoucherDetailsProps) => {
   } = useCollectionWithTotalProductsSearch({
     variables: DEFAULT_INITIAL_SEARCH_DATA,
   });
-  const {
-    loadMore: loadMoreProducts,
-    search: searchProducts,
-    result: searchProductsOpts,
-  } = useProductSearch({
+  const { loadMore: loadMoreProducts, result: searchProductsOpts } = useProductSearch({
     variables: DEFAULT_INITIAL_SEARCH_DATA,
   });
+
+  const handleProductFilterChange = (
+    filterVariables: ProductWhereInput,
+    channel: string | undefined,
+    query: string,
+  ) => {
+    searchProductsOpts.refetch({
+      ...DEFAULT_INITIAL_SEARCH_DATA,
+      where: filterVariables,
+      channel,
+      query,
+    });
+  };
+
   const [updateMetadata] = useUpdateMetadataMutation({});
   const [updatePrivateMetadata] = useUpdatePrivateMetadataMutation({});
   const [activeTab, setActiveTab] = useState<VoucherDetailsPageTab>(
@@ -181,7 +192,10 @@ const VoucherDetails = ({ id, params }: VoucherDetailsProps) => {
   const notifySaved = () =>
     notify({
       status: "success",
-      text: intl.formatMessage(commonMessages.savedChanges),
+      text: intl.formatMessage({
+        id: "uX+Vg7",
+        defaultMessage: "Voucher updated",
+      }),
     });
   const [voucherUpdate, voucherUpdateOpts] = useVoucherUpdateMutation({
     onCompleted: data => {
@@ -507,7 +521,7 @@ const VoucherDetails = ({ id, params }: VoucherDetailsProps) => {
         confirmButtonState={voucherUpdateOpts.status}
         hasMore={searchProductsOpts.data?.search.pageInfo.hasNextPage}
         open={params.action === "assign-variant"}
-        onFetch={searchProducts}
+        onFilterChange={handleProductFilterChange}
         onFetchMore={loadMoreProducts}
         loading={searchProductsOpts.loading}
         onClose={closeModal}
@@ -538,7 +552,6 @@ const VoucherDetails = ({ id, params }: VoucherDetailsProps) => {
         confirmButtonState={voucherCataloguesAddOpts.status}
         hasMore={searchProductsOpts.data?.search.pageInfo.hasNextPage}
         open={params.action === "assign-product"}
-        onFetch={searchProducts}
         onFetchMore={loadMoreProducts}
         loading={searchProductsOpts.loading}
         onClose={closeModal}
@@ -555,6 +568,8 @@ const VoucherDetails = ({ id, params }: VoucherDetailsProps) => {
           })
         }
         products={getFilteredProducts(data, searchProductsOpts)}
+        excludedFilters={["channel"]}
+        onFilterChange={handleProductFilterChange}
       />
       <ActionDialog
         open={params.action === "unassign-category" && canOpenBulkActionDialog}

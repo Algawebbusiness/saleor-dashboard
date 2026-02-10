@@ -63,6 +63,7 @@ export const channelListingProductWithoutPricingFragment = gql`
     channel {
       id
       name
+      slug
       currencyCode
     }
   }
@@ -146,6 +147,12 @@ export const productVariantAttributesFragment = gql`
       variantAttributes {
         ...VariantAttribute
       }
+      selectionVariantAttributes: variantAttributes(variantSelection: VARIANT_SELECTION) {
+        ...VariantAttribute
+      }
+      nonSelectionVariantAttributes: variantAttributes(variantSelection: NOT_VARIANT_SELECTION) {
+        ...VariantAttribute
+      }
     }
     channelListings {
       channel {
@@ -223,6 +230,7 @@ export const productFragmentDetails = gql`
       id
       name
       hasVariants
+      isShippingRequired
     }
     weight {
       ...Weight
@@ -298,6 +306,11 @@ export const fragmentVariant = gql`
       name
       thumbnail {
         url
+      }
+      productType {
+        id
+        name
+        hasVariants
       }
       channelListings {
         id
